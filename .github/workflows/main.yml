@@ -1,0 +1,35 @@
+name: Auto Update Exam Navigator
+
+on:
+  push:
+    paths:
+      - '**.md'  # 只有当 md 文件变动时才触发，节省资源
+    branches:
+      - main
+
+jobs:
+  update-nav:
+    runs-on: ubuntu-latest
+    permissions: # 关键：授予推送到仓库的权限
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史以确保能 push
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Generate Navigation
+        run: python generate_nav.py
+
+      - name: Commit and Push
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          # 检查是否有改动，无改动则跳过 commit
+          git diff --staged --quiet || (git commit -m "docs: 自动更新错题导航" && git push)
