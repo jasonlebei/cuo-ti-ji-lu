@@ -2,28 +2,28 @@ name: Auto Update Exam Navigator
 
 on:
   push:
+    # 只有当你修改了 md 文件或者新增了文件夹时才运行，节省次数
     paths:
-      - '**.md'  # 只有当 md 文件变动时才触发，节省资源
+      - '**.md'
     branches:
       - main
+  workflow_dispatch: # 允许你在 GitHub 页面上点击按钮手动运行
 
 jobs:
-  update-nav:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: # 关键：授予推送到仓库的权限
-      contents: write
+    permissions:
+      contents: write # 必须开启写入权限
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 获取完整历史以确保能 push
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.10'
 
-      - name: Generate Navigation
+      - name: Run Nav Generator
         run: python generate_nav.py
 
       - name: Commit and Push
@@ -31,5 +31,10 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          # 检查是否有改动，无改动则跳过 commit
-          git diff --staged --quiet || (git commit -m "docs: 自动更新错题导航" && git push)
+          # 只有当 README 真的发生变化时才提交，防止死循环
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: 自动更新错题导航 [skip ci]"
+            git push
+          fi
