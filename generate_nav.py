@@ -8,7 +8,7 @@ def generate_exam_nav():
     
     content_lines = [
         "# 📚 错题集导航\n",
-        "> 本导航由 GitHub Actions 自动更新。若页面显示 404，请尝试刷新。\n\n",
+        "> 本导航由 GitHub Actions 自动更新。若页面显示 404，请强制刷新浏览器。\n\n",
         "--- \n\n"
     ]
 
@@ -29,26 +29,27 @@ def generate_exam_nav():
                 content_lines.append(f"{header_level} 📁 {folder_name}\n")
 
             for file in files:
-                # 拼接相对路径
+                # 拼接相对路径并统一使用正斜杠
                 raw_path = os.path.join(root, file).replace("\\", "/")
                 if raw_path.startswith("./"):
                     raw_path = raw_path[2:]
                 
-                # 关键：手动处理 URL 编码，避免 GitHub Pages 对特殊符号二次转义导致 404
-                # 我们只编码空格和反引号，保留中文原样（GitHub Pages 支持中文路径）
-                safe_path = raw_path.replace(" ", "%20").replace("`", "%60").replace("%", "%25")
+                # --- 核心改进：使用标准 URL 编码 ---
+                # urllib.parse.quote 会把空格转为 %20，把中文转为编码
+                # safe='/' 表示不对斜杠进行编码，保留路径结构
+                safe_path = urllib.parse.quote(raw_path, safe='/')
                 
                 display_name = os.path.splitext(file)[0]
+                # 在导航中显示原名，但链接使用 safe_path
                 content_lines.append(f"* [{display_name}](./{safe_path})\n")
             
             content_lines.append("\n")
 
-    # --- 核心改进：同时写入两个文件 ---
-    # README.md 用于仓库主页显示，index.md 用于 GitHub Pages 渲染首页
+    # --- 双写逻辑：同时更新 README 和 index ---
     for filename in ["README.md", "index.md"]:
         with open(filename, "w", encoding="utf-8") as f:
             f.write("".join(content_lines))
-        print(f"成功更新: {filename}")
+        print(f"✅ 已成功同步内容至: {filename}")
 
 if __name__ == "__main__":
     generate_exam_nav()
