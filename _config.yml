@@ -1,8 +1,5 @@
 title: 📚 我的错题记录
-description: |
-  [🏠 回到首页](https://jasonlebei.github.io/cuo-ti-ji-lu/)
-  <br>
-  记录学习中的点点滴滴，持续进步。
+description: "<a href='https://jasonlebei.github.io/cuo-ti-ji-lu/'>🏠 回到首页</a><br>记录学习中的点点滴滴"
 
 theme: jekyll-theme-minimal
 remote_theme: pages-themes/minimal@v0.2.0
