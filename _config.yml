@@ -1,3 +1,13 @@
+title: 📚 我的错题记录
+description: |
+  [🏠 回到首页](https://jasonlebei.github.io/cuo-ti-ji-lu/)
+  <br>
+  记录学习中的点点滴滴，持续进步。
+
 theme: jekyll-theme-minimal
 remote_theme: pages-themes/minimal@v0.2.0
 encoding: "utf-8"
+
+# 如果你想让侧边栏看起来更简洁，可以关闭默认的按钮
+show_downloads: false
+google_analytics:
