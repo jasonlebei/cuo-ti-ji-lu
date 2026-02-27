@@ -2,38 +2,34 @@ name: Auto Update Exam Navigator
 
 on:
   push:
-    paths:
-      - '**.md'      # 监控所有 Markdown 文件变动
-      - '**.py'      # 监控脚本变动
-    branches:
-      - main         # 确保你的主分支名是 main
-  workflow_dispatch: # 支持手动点击按钮运行
+    paths: ['**.md', '**.py']
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
     steps:
-      - name: Checkout repository
+      # 1. 直接拉取代码 (这是必修课，速度很快)
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Nav Generator
-        # 直接调用系统自带 Python 3，速度最快
+      # 2. 直接运行系统内置的 python3
+      # 彻底删除 setup-python 步骤，避免 Waiting/Download 导致超时
+      - name: Run Generator
         run: python3 generate_nav.py
 
+      # 3. 提交代码
       - name: Commit and Push
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 自动添加所有生成的 md 文件
           git add README.md index.md
-          
           if git diff --staged --quiet; then
-            echo "没有内容更新"
+            echo "No changes"
           else
-            git commit -m "docs: 自动同步导航 (美化版，无.md后缀)"
+            git commit -m "docs: 极速模式更新导航"
             git push
           fi
