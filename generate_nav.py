@@ -3,9 +3,8 @@ import urllib.parse
 import datetime
 
 def generate_exam_nav():
-    # 1. 排除不需要扫描的目录和文件
+    # 1. 排除配置
     exclude_dirs = {'.git', '.github', 'node_modules', '.vscode', 'assets', 'static'}
-    # 仅排除脚本和配置文件，不要排除 README.md，否则根目录会被跳过
     exclude_files = {'generate_nav.py', '_config.yml', '.nojekyll'}
     target_files = {'README.md', 'index.md'}
     
@@ -15,37 +14,30 @@ def generate_exam_nav():
         "---\n\n"
     ]
 
-    icon_map = {
-        "math": "🔢", "english": "🔤", "physics": "🧪", 
-        "code": "💻", "exam": "📝", "note": "📒", "python": "🐍"
-    }
+    icon_map = {"math": "🔢", "english": "🔤", "physics": "🧪", "code": "💻", "exam": "📝", "note": "📒", "python": "🐍"}
 
-    # 4. 遍历目录 (按字母顺序排序确保目录层级正确)
+    # 4. 遍历目录
     for root, dirs, files in os.walk('.'):
+        # 过滤并排序目录
         dirs[:] = sorted([d for d in dirs if d not in exclude_dirs])
         
-        # 筛选有效 md 文件（排除自身生成的目标文件）
-        md_files = sorted([f for f in files if f.endswith('.md') 
-                          and f not in exclude_files 
-                          and f not in target_files])
-
-        if md_files:
-            relative_path = os.path.relpath(root, '.')
+        # 过滤 md 文件
+        md_files = sorted([f for f in files if f.endswith('.md') and f not in exclude_files and f not in target_files])
+        
+        relative_path = os.path.relpath(root, '.')
+        
+        # --- 核心修复：只要不是根目录，就显示文件夹标题 ---
+        if root != ".":
+            folder_name = os.path.basename(root)
+            # 计算深度：'2级' 深度为 0，'2级/2025.12' 深度为 1
+            depth = relative_path.replace("\\", "/").count("/")
             
-            # --- 标题层级逻辑修正 ---
-            if root == ".":
-                content_lines.append(f"## 📌 根目录记录\n\n")
-            else:
-                # 取得当前文件夹名称
-                folder_name = os.path.basename(root)
-                # 计算路径深度：1级子目录(如'2级')深度为0，2级子目录(如'2025.12')深度为1
-                depth = 0 if relative_path == "." else relative_path.replace("\\", "/").count("/")
-                
-                # 根据深度决定 # 数量：深度0 -> # (一级), 深度1 -> ## (二级)
-                header_level = "#" * (depth + 1)
-                content_lines.append(f"{header_level} {folder_name}\n\n")
+            # 这里的规则：深度0 (2级) -> #， 深度1 (2025.12) -> ##
+            header_level = "#" * (depth + 1)
+            content_lines.append(f"{header_level} 📂 {folder_name}\n\n")
 
-            # --- 文件链接生成 ---
+        # 如果当前目录下有 md 文件，则列出
+        if md_files:
             for file in md_files:
                 display_name = os.path.splitext(file)[0]
                 icon = "📄"
@@ -54,12 +46,11 @@ def generate_exam_nav():
                         icon = val
                         break
 
-                # 构造 URL 路径
+                # 构造路径
+                clean_rel_path = relative_path.replace("\\", "/")
                 if relative_path == ".":
-                    url_path = display_name + ".html"
+                    url_path = f"{display_name}.html"
                 else:
-                    # 将路径中的 \ 换成 / 以兼容 web
-                    clean_rel_path = relative_path.replace("\\", "/")
                     url_path = f"{clean_rel_path}/{display_name}.html"
                 
                 safe_url = urllib.parse.quote(url_path, safe='/')
