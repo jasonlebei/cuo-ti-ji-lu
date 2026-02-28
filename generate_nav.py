@@ -3,11 +3,10 @@ import urllib.parse
 import datetime
 
 def generate_exam_nav():
-    # 1. 排除配置
+    # 1. 排除不需要扫描的目录和文件
     exclude_dirs = {'.git', '.github', 'node_modules', '.vscode', 'assets', 'static'}
-    # 注意：不要在这里排除你想在导航里显示的 md 文件
-    exclude_files = {'generate_nav.py', '_config.yml'}
-    # 导航生成目标文件本身也要排除，防止递归扫描
+    # 仅排除脚本和配置文件，不要排除 README.md，否则根目录会被跳过
+    exclude_files = {'generate_nav.py', '_config.yml', '.nojekyll'}
     target_files = {'README.md', 'index.md'}
     
     content_lines = [
@@ -21,12 +20,11 @@ def generate_exam_nav():
         "code": "💻", "exam": "📝", "note": "📒", "python": "🐍"
     }
 
-    # 4. 遍历目录
+    # 4. 遍历目录 (按字母顺序排序确保目录层级正确)
     for root, dirs, files in os.walk('.'):
-        # 排除目录
         dirs[:] = sorted([d for d in dirs if d not in exclude_dirs])
         
-        # 筛选 md 文件，同时排除 README.md 和 index.md 本身
+        # 筛选有效 md 文件（排除自身生成的目标文件）
         md_files = sorted([f for f in files if f.endswith('.md') 
                           and f not in exclude_files 
                           and f not in target_files])
@@ -34,36 +32,37 @@ def generate_exam_nav():
         if md_files:
             relative_path = os.path.relpath(root, '.')
             
-            # 文件夹标题处理
+            # --- 标题层级逻辑修正 ---
             if root == ".":
                 content_lines.append(f"## 📌 根目录记录\n\n")
             else:
-                # 计算深度，并将 Windows 路径分隔符替换为 /
-                depth = relative_path.replace("\\", "/").count("/") + 1
-                header_level = "#" * min(depth + 1, 4)
-                content_lines.append(f"{header_level} 📂 {relative_path}\n\n")
+                # 取得当前文件夹名称
+                folder_name = os.path.basename(root)
+                # 计算路径深度：1级子目录(如'2级')深度为0，2级子目录(如'2025.12')深度为1
+                depth = 0 if relative_path == "." else relative_path.replace("\\", "/").count("/")
+                
+                # 根据深度决定 # 数量：深度0 -> # (一级), 深度1 -> ## (二级)
+                header_level = "#" * (depth + 1)
+                content_lines.append(f"{header_level} {folder_name}\n\n")
 
+            # --- 文件链接生成 ---
             for file in md_files:
                 display_name = os.path.splitext(file)[0]
-                
-                # 图标逻辑
                 icon = "📄"
                 for key, val in icon_map.items():
                     if key in display_name.lower():
                         icon = val
                         break
 
-                # 构造相对于根目录的路径
-                # 如果文件在根目录，路径就是 file；如果在子目录，就是 relative_path/file
+                # 构造 URL 路径
                 if relative_path == ".":
-                    full_path = file
+                    url_path = display_name + ".html"
                 else:
-                    full_path = os.path.join(relative_path, file).replace("\\", "/")
+                    # 将路径中的 \ 换成 / 以兼容 web
+                    clean_rel_path = relative_path.replace("\\", "/")
+                    url_path = f"{clean_rel_path}/{display_name}.html"
                 
-                # 转换后缀为 .html (用于部署后的页面)
-                url_path = os.path.splitext(full_path)[0] + ".html"
                 safe_url = urllib.parse.quote(url_path, safe='/')
-                
                 content_lines.append(f"* {icon} [{display_name}](./{safe_url})\n")
             
             content_lines.append("\n")
